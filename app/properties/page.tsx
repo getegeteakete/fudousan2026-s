@@ -3,27 +3,30 @@ import { useState, useRef } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { SAMPLE_PROPERTIES, formatCurrency } from '@/lib/data';
 import type { Property } from '@/lib/data';
-import { Upload, Building2, Plus, Search, Download, CheckCircle } from 'lucide-react';
+import Link from 'next/link';
+import { IconUpload, IconProperties, IconPlus, IconSearch, IconDownload, IconCheck, IconNewContract } from '@/components/Icons';
 
-const CSV_TEMPLATE = `物件名,住所,種別,面積,賃料,売買価格,間取り,階数,築年,オーナー,オーナーメール,オーナー電話
-サンプルマンション 101号室,東京都新宿区西新宿1-1-1,マンション,35.5,85000,,1K,1階,2020年,山田 太郎,yamada@example.com,03-1234-5678
-サンプル一戸建て,東京都世田谷区三軒茶屋2-2-2,一戸建て,90.0,,45000000,3LDK,,2015年,田中 花子,tanaka@example.com,090-9876-5432`;
+function PropIcon({ type }: { type: string }) {
+  if (type === '一戸建て') return (
+    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 10L12 3L21 10" /><path d="M5 10V21H9V15H15V21H19V10" />
+    </svg>
+  );
+  return (
+    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="1" />
+      <path d="M8 6H10" /><path d="M14 6H16" /><path d="M8 10H10" /><path d="M14 10H16" />
+      <path d="M8 14H10" /><path d="M14 14H16" /><path d="M10 22V17H14V22" />
+    </svg>
+  );
+}
 
 export default function PropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>(SAMPLE_PROPERTIES);
-  const [search, setSearch] = useState('');
-  const [uploadMsg, setUploadMsg] = useState('');
+  const [csvProperties, setCsvProperties] = useState<Property[]>([]);
   const [dragOver, setDragOver] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [showCsvPreview, setShowCsvPreview] = useState(false);
+  const [search, setSearch] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
-  const [newProp, setNewProp] = useState({
-    name: '', address: '', type: 'マンション', area: '', rent: '', price: '', rooms: '',
-    floor: '', buildYear: '', owner: '', ownerEmail: '', ownerPhone: '',
-  });
-
-  const filtered = properties.filter(p =>
-    !search || p.name.includes(search) || p.address.includes(search) || p.owner.includes(search)
-  );
 
   const handleCSV = (file: File) => {
     const reader = new FileReader();
@@ -37,256 +40,131 @@ export default function PropertiesPage() {
         const obj: Record<string, string> = {};
         headers.forEach((h, idx) => { obj[h] = vals[idx] || ''; });
         return {
-          id: `import-${Date.now()}-${i}`,
-          name: obj['物件名'] || `物件${i + 1}`,
-          address: obj['住所'] || '',
-          type: obj['種別'] || 'マンション',
-          area: parseFloat(obj['面積'] || '0'),
-          rent: obj['賃料'] ? parseInt(obj['賃料']) : undefined,
-          price: obj['売買価格'] ? parseInt(obj['売買価格']) : undefined,
-          rooms: obj['間取り'] || '',
-          floor: obj['階数'] || '',
-          buildYear: obj['築年'] || '',
-          owner: obj['オーナー'] || '',
-          ownerEmail: obj['オーナーメール'] || '',
+          id: `csv-${i}`, name: obj['物件名'] || `物件${i+1}`,
+          address: obj['住所'] || '', type: obj['種別'] || 'マンション',
+          area: parseFloat(obj['面積'] || '0'), rent: parseInt(obj['賃料'] || '0'),
+          price: parseInt(obj['売買価格'] || '0'), rooms: obj['間取り'] || '',
+          floor: obj['階数'] || '', buildYear: obj['築年'] || '',
+          owner: obj['オーナー'] || '', ownerEmail: obj['オーナーメール'] || '',
           ownerPhone: obj['オーナー電話'] || '',
         };
       });
-      setProperties(prev => [...prev, ...parsed]);
-      setUploadMsg(`✓ ${parsed.length}件の物件をインポートしました`);
-      setTimeout(() => setUploadMsg(''), 4000);
+      setCsvProperties(parsed);
+      setShowCsvPreview(true);
     };
     reader.readAsText(file, 'UTF-8');
   };
 
-  const downloadTemplate = () => {
-    const blob = new Blob(['\uFEFF' + CSV_TEMPLATE], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'property_template.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const addProperty = () => {
-    const prop: Property = {
-      id: `manual-${Date.now()}`,
-      name: newProp.name,
-      address: newProp.address,
-      type: newProp.type,
-      area: parseFloat(newProp.area) || 0,
-      rent: newProp.rent ? parseInt(newProp.rent) : undefined,
-      price: newProp.price ? parseInt(newProp.price) : undefined,
-      rooms: newProp.rooms,
-      floor: newProp.floor,
-      buildYear: newProp.buildYear,
-      owner: newProp.owner,
-      ownerEmail: newProp.ownerEmail,
-      ownerPhone: newProp.ownerPhone,
-    };
-    setProperties(prev => [prop, ...prev]);
-    setShowModal(false);
-    setNewProp({ name: '', address: '', type: 'マンション', area: '', rent: '', price: '', rooms: '', floor: '', buildYear: '', owner: '', ownerEmail: '', ownerPhone: '' });
-  };
+  const allProperties = [...SAMPLE_PROPERTIES, ...csvProperties];
+  const filtered = allProperties.filter(p => !search || p.name.includes(search) || p.address.includes(search));
 
   return (
     <AppLayout title="物件管理">
-      {/* Header actions */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180 }}>
-          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input className="form-input" style={{ paddingLeft: 32 }} placeholder="物件名・住所・オーナー検索..."
-            value={search} onChange={e => setSearch(e.target.value)} />
+      {/* CSV Upload */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-header">
+          <div className="card-title"><IconUpload size={15} /> CSVバルクインポート</div>
+          <button className="btn btn-outline btn-sm"><IconDownload size={13} /> テンプレートDL</button>
         </div>
-        <button className="btn btn-outline btn-sm" onClick={downloadTemplate}>
-          <Download size={14} /> CSVテンプレート
-        </button>
-        <button className="btn btn-outline btn-sm" onClick={() => fileRef.current?.click()}>
-          <Upload size={14} /> CSVインポート
-        </button>
-        <input type="file" ref={fileRef} accept=".csv" style={{ display: 'none' }}
-          onChange={e => { const f = e.target.files?.[0]; if (f) handleCSV(f); }} />
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={14} /> 物件追加
-        </button>
-      </div>
-
-      {uploadMsg && (
-        <div className="alert alert-success" style={{ marginBottom: 16 }}>
-          <CheckCircle size={14} /> {uploadMsg}
-        </div>
-      )}
-
-      {/* CSV Upload zone */}
-      <div
-        className={`upload-zone ${dragOver ? 'dragover' : ''}`}
-        style={{ marginBottom: 20 }}
-        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleCSV(f); }}
-        onClick={() => fileRef.current?.click()}
-      >
-        <div className="upload-icon"><Upload size={22} /></div>
-        <div style={{ fontWeight: 700, marginBottom: 4 }}>物件CSVをドロップしてインポート</div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-          物件名,住所,種別,面積,賃料,売買価格,間取り,階数,築年,オーナー,オーナーメール,オーナー電話
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>CSVインポート後、契約書作成画面で物件情報を自動挿入できます</div>
-      </div>
-
-      {/* Stats */}
-      <div className="stat-grid" style={{ marginBottom: 20 }}>
-        <div className="stat-card">
-          <div className="stat-label">登録物件数</div>
-          <div className="stat-value">{properties.length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">賃貸物件</div>
-          <div className="stat-value">{properties.filter(p => p.rent).length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">売買物件</div>
-          <div className="stat-value">{properties.filter(p => p.price && !p.rent).length}</div>
-        </div>
-        <div className="stat-card navy">
-          <div className="stat-label">検索結果</div>
-          <div className="stat-value">{filtered.length}</div>
-          <div className="stat-sub">件</div>
-        </div>
-      </div>
-
-      {/* Property grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
-        {filtered.map((prop) => (
-          <div key={prop.id} className="card" style={{ cursor: 'pointer', transition: 'box-shadow 0.15s' }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = 'var(--shadow-sm)')}>
-            <div style={{
-              background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%)',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-              padding: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}>
-              <div style={{ fontSize: 32 }}>{prop.type === '一戸建て' ? '🏡' : '🏢'}</div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{prop.name}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{prop.type}</div>
+        <div className="card-body">
+          <div className={`upload-zone`} style={{ marginBottom: showCsvPreview ? 16 : 0 }}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleCSV(f); }}
+            onClick={() => fileRef.current?.click()}>
+            <input type="file" ref={fileRef} accept=".csv" style={{ display: 'none' }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCSV(f); }} />
+            <div className="upload-icon"><IconUpload size={22} color="var(--gold-light)" /></div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>CSVファイルをドロップ</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+              物件名,住所,種別,面積,賃料,売買価格,間取り,階数,築年,オーナー,オーナーメール,オーナー電話
+            </div>
+            <button className="btn btn-outline btn-sm">ファイルを選択</button>
+          </div>
+          {csvProperties.length > 0 && (
+            <div className="alert alert-success">
+              <IconCheck size={13} /> {csvProperties.length}件の物件をCSVから読み込みました
+            </div>
+          )}
+          {showCsvPreview && csvProperties.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--text-sub)' }}>インポートプレビュー</div>
+              <div className="csv-table-wrap">
+                <table className="data-table">
+                  <thead><tr><th>物件名</th><th>住所</th><th>種別</th><th>面積</th><th>賃料/価格</th><th>間取り</th><th>オーナー</th></tr></thead>
+                  <tbody>
+                    {csvProperties.slice(0, 10).map((p) => (
+                      <tr key={p.id}>
+                        <td style={{ fontWeight: 600 }}>{p.name}</td><td>{p.address}</td><td>{p.type}</td>
+                        <td>{p.area}㎡</td><td>{p.rent ? formatCurrency(p.rent) : p.price ? formatCurrency(p.price) : '-'}</td>
+                        <td>{p.rooms}</td><td>{p.owner}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary btn-sm"><IconCheck size={13} /> {csvProperties.length}件を登録する</button>
+                <button className="btn btn-outline btn-sm" onClick={() => { setCsvProperties([]); setShowCsvPreview(false); }}>キャンセル</button>
               </div>
             </div>
-            <div style={{ padding: '16px' }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>📍 {prop.address}</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          )}
+        </div>
+      </div>
+
+      {/* Property list */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1 1 200px' }}>
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex' }}><IconSearch size={14} /></span>
+          <input className="form-input" style={{ paddingLeft: 32 }} placeholder="物件名・住所で検索..." value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{filtered.length}件</span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+        {filtered.map((prop) => (
+          <div key={prop.id} className="card" style={{ overflow: 'hidden' }}>
+            <div style={{ background: 'linear-gradient(135deg, var(--navy-deep) 0%, var(--navy-light) 100%)', padding: '18px 20px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(184,148,74,0.15)', border: '1px solid rgba(184,148,74,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <PropIcon type={prop.type} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: 'white', marginBottom: 3, fontFamily: 'Shippori Mincho, serif' }}>{prop.name}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{prop.address}</div>
+              </div>
+            </div>
+            <div className="card-body" style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
                 {[
-                  prop.area + '㎡',
-                  prop.rooms,
-                  prop.floor,
-                  prop.buildYear && `築${prop.buildYear}`,
-                ].filter(Boolean).map((tag, i) => (
-                  <span key={i} style={{ fontSize: 11, background: 'var(--bg-base)', padding: '3px 8px', borderRadius: 6, fontWeight: 600 }}>
-                    {tag}
-                  </span>
+                  { label: '種別', value: prop.type },
+                  { label: '面積', value: `${prop.area}㎡` },
+                  { label: '間取り', value: prop.rooms || '-' },
+                  { label: '階数', value: prop.floor || '-' },
+                  { label: '築年', value: prop.buildYear ? `築${prop.buildYear}` : '-' },
+                  { label: 'オーナー', value: prop.owner || '-' },
+                ].map(item => (
+                  <div key={item.label}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{item.label}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-main)' }}>{item.value}</div>
+                  </div>
                 ))}
               </div>
-              {prop.rent && (
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>
-                  {formatCurrency(prop.rent)}<span style={{ fontSize: 12, fontWeight: 400 }}>/月</span>
+              {(prop.rent || prop.price) && (
+                <div style={{ padding: '8px 12px', background: 'var(--earth-pale)', borderRadius: 'var(--radius)', marginBottom: 12, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{prop.rent ? '賃料' : '売買価格'}</span>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>
+                    {prop.rent ? formatCurrency(prop.rent) : formatCurrency(prop.price!)}
+                  </span>
+                  {prop.rent && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>/月</span>}
                 </div>
               )}
-              {prop.price && !prop.rent && (
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>
-                  {formatCurrency(prop.price)}
-                </div>
-              )}
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
-                👤 {prop.owner} | {prop.ownerPhone}
-              </div>
+              <Link href="/contracts/new" className="btn btn-primary btn-sm w-full">
+                <IconNewContract size={13} /> この物件で契約作成
+              </Link>
             </div>
           </div>
         ))}
       </div>
-
-      {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
-          <Building2 size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
-          <div style={{ fontSize: 14 }}>物件が見つかりません</div>
-        </div>
-      )}
-
-      {/* Add property modal */}
-      {showModal && (
-        <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div className="modal">
-            <div className="modal-header">
-              <div className="modal-title">物件を追加</div>
-              <button className="btn btn-icon btn-outline" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-grid form-grid-2">
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">物件名<span className="required">*</span></label>
-                  <input className="form-input" placeholder="グランドハイツ渋谷 301号室" value={newProp.name}
-                    onChange={e => setNewProp(p => ({ ...p, name: e.target.value }))} />
-                </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">住所<span className="required">*</span></label>
-                  <input className="form-input" placeholder="東京都渋谷区道玄坂2-10-12" value={newProp.address}
-                    onChange={e => setNewProp(p => ({ ...p, address: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">種別</label>
-                  <select className="form-select" value={newProp.type} onChange={e => setNewProp(p => ({ ...p, type: e.target.value }))}>
-                    <option>マンション</option><option>一戸建て</option><option>土地</option><option>事務所</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">面積（㎡）</label>
-                  <input className="form-input" type="number" placeholder="45.5" value={newProp.area}
-                    onChange={e => setNewProp(p => ({ ...p, area: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">月額賃料（円）</label>
-                  <input className="form-input" type="number" placeholder="120000" value={newProp.rent}
-                    onChange={e => setNewProp(p => ({ ...p, rent: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">売買価格（円）</label>
-                  <input className="form-input" type="number" placeholder="45000000" value={newProp.price}
-                    onChange={e => setNewProp(p => ({ ...p, price: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">間取り</label>
-                  <input className="form-input" placeholder="1LDK" value={newProp.rooms}
-                    onChange={e => setNewProp(p => ({ ...p, rooms: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">築年</label>
-                  <input className="form-input" placeholder="2020年" value={newProp.buildYear}
-                    onChange={e => setNewProp(p => ({ ...p, buildYear: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">オーナー名</label>
-                  <input className="form-input" placeholder="山田 太郎" value={newProp.owner}
-                    onChange={e => setNewProp(p => ({ ...p, owner: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">オーナーメール</label>
-                  <input className="form-input" type="email" placeholder="owner@example.com" value={newProp.ownerEmail}
-                    onChange={e => setNewProp(p => ({ ...p, ownerEmail: e.target.value }))} />
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setShowModal(false)}>キャンセル</button>
-              <button className="btn btn-primary" disabled={!newProp.name || !newProp.address} onClick={addProperty}>
-                追加する
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </AppLayout>
   );
 }

@@ -134,25 +134,25 @@ export default function DashboardPage() {
         <div className="card-header"><div className="card-title"><IconContracts size={15} /> 電子契約フロー</div></div>
         <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto' }}>
           {[
-            { icon: '📁', label: 'CSV\nインポート', color: 'var(--blue)' },
+            { path: 'M14 2L20 8L20 22L4 22L4 2Z M14 2L14 8L20 8 M8 12L16 12 M8 16L13 16', label: 'CSV\nインポート', color: 'var(--blue)' },
             { arrow: true },
-            { icon: '📝', label: '契約書\n自動生成', color: 'var(--navy)' },
+            { path: 'M17 3C18.1 3 19 3.9 19 5L7 17L3 21L7 17L19 5 M15 5L19 9', label: '契約書\n自動生成', color: 'var(--navy)' },
             { arrow: true },
-            { icon: '⚖️', label: '宅建士\nAIチェック', color: 'var(--gold)' },
+            { path: 'M12 2L13.5 9L20 10L13.5 11L12 18L10.5 11L4 10L10.5 9Z', label: '宅建士\nAIチェック', color: 'var(--gold)' },
             { arrow: true },
-            { icon: '📧', label: '署名依頼\n送信', color: 'var(--nezumi)' },
+            { path: 'M22 2L11 13 M22 2L15 22L11 13L2 9Z', label: '署名依頼\n送信', color: 'var(--nezumi)' },
             { arrow: true },
-            { icon: '✍️', label: '顧客\n電子署名', color: 'var(--green)' },
+            { path: 'M17 3C18.1 3 19 3.9 19 5L7 17L3 21L7 17L19 5 M15 5L19 9 M3 21C7 19 11 17 15 19C17 20 19 21 21 21', label: '顧客\n電子署名', color: 'var(--green)' },
             { arrow: true },
-            { icon: '🔐', label: 'タイムスタンプ\n付与', color: 'var(--red)' },
+            { path: 'M5 11L5 19C5 20.7 7.1 22 12 22C16.9 22 21 20.7 21 19L21 11 M8 11L8 7C8 4.8 9.8 3 12 3C14.2 3 16 4.8 16 7L16 11', label: 'タイムスタンプ\n付与', color: 'var(--red)' },
             { arrow: true },
-            { icon: '✅', label: '締結完了\n保管', color: 'var(--green)' },
+            { path: 'M4 12L9 17L20 6', label: '締結完了\n保管', color: 'var(--green)' },
           ].map((s, i) => 'arrow' in s ? (
-            <span key={i} style={{ color: 'var(--earth)', fontSize: 16, flexShrink: 0 }}>›</span>
+            <span key={i} style={{ color: 'var(--earth)', fontSize: 18, flexShrink: 0, fontWeight: 300 }}>›</span>
           ) : (
             <div key={i} style={{ textAlign: 'center', minWidth: 68, flexShrink: 0 }}>
-              <div style={{ width: 42, height: 42, borderRadius: '50%', border: `1.5px solid ${s.color}30`, background: s.color + '12', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, margin: '0 auto 6px' }}>
-                {s.icon}
+              <div style={{ width: 42, height: 42, borderRadius: '50%', border: `1.5px solid ${s.color}40`, background: s.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px' }}>
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d={s.path} /></svg>
               </div>
               <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-sub)', whiteSpace: 'pre-line', lineHeight: 1.4 }}>{s.label}</div>
             </div>
