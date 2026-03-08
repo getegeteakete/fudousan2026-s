@@ -172,3 +172,188 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
+
+// ──────────────────────────────────────────────────────────
+// 外部連携テストパネル（settings タブ用）
+// ──────────────────────────────────────────────────────────
+function IntegrationTestPanel() {
+  const [emailTo, setEmailTo]     = useState('');
+  const [emailResult, setEmailResult] = useState<{success?:boolean;mode?:string;message?:string;id?:string;fallback?:boolean} | null>(null);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{status?:string;mode?:string;from?:string;message?:string} | null>(null);
+  const [aiResult, setAiResult]   = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [signResult, setSignResult] = useState<{success?:boolean;signUrl?:string;email?:{sent:boolean;fallback?:boolean}} | null>(null);
+  const [signLoading, setSignLoading] = useState(false);
+
+  // メール設定確認
+  useEffect(() => {
+    fetch('/api/email/test')
+      .then(r => r.json())
+      .then(d => setEmailStatus(d))
+      .catch(() => setEmailStatus({ status: 'error', message: '接続エラー' }));
+  }, []);
+
+  const sendTestEmail = async () => {
+    if (!emailTo.includes('@')) { alert('メールアドレスを入力してください'); return; }
+    setEmailLoading(true); setEmailResult(null);
+    const r = await fetch('/api/email/test', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: emailTo }),
+    });
+    setEmailResult(await r.json());
+    setEmailLoading(false);
+  };
+
+  const testAI = async () => {
+    setAiLoading(true); setAiResult('');
+    const r = await fetch('/api/ai/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: '「こんにちは」と日本語で返答してください' }] }),
+    });
+    const d = await r.json();
+    setAiResult(d.content ?? d.error ?? '応答なし');
+    setAiLoading(false);
+  };
+
+  const testSignFlow = async () => {
+    setSignLoading(true); setSignResult(null);
+    const r = await fetch('/api/sign/request', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contractId: 'test-' + Date.now(),
+        expiryDays: 1,
+        localContract: {
+          tenantEmail: emailTo || 'test@example.com',
+          tenantName: 'テスト 太郎', propertyName: 'テスト物件',
+          contractNo: 'PS-TEST-001', agentName: '山田 宅建士',
+        },
+      }),
+    });
+    setSignResult(await r.json());
+    setSignLoading(false);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* メール送信テスト */}
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">📧 メール送信（Resend）テスト</div>
+          {emailStatus && (
+            <span className={`status-badge ${emailStatus.status === 'configured' ? 'status-completed' : 'status-pending'}`}>
+              {emailStatus.status === 'configured' ? '✓ API接続済み' : '⚠ フォールバックモード'}
+            </span>
+          )}
+        </div>
+        <div className="card-body">
+          {emailStatus && (
+            <div className={`alert ${emailStatus.status === 'configured' ? 'alert-success' : 'alert-warn'}`} style={{ marginBottom: 14 }}>
+              {emailStatus.message}<br />
+              {emailStatus.status !== 'configured' && (
+                <span style={{ fontSize: 11 }}>
+                  Vercel環境変数に <code>RESEND_API_KEY</code> を設定してください。
+                  <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ marginLeft: 6, textDecoration: 'underline' }}>Resend無料登録 →</a>
+                </span>
+              )}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+            <input className="form-input" style={{ flex: '1 1 200px' }}
+              placeholder="送信先メールアドレス" type="email"
+              value={emailTo} onChange={e => setEmailTo(e.target.value)} />
+            <button className="btn btn-primary" disabled={emailLoading} onClick={sendTestEmail}>
+              {emailLoading ? <><span className="spinner" /> 送信中…</> : '📤 テスト送信'}
+            </button>
+          </div>
+          {emailResult && (
+            <div className={`alert ${emailResult.success ? 'alert-success' : 'alert-danger'}`}>
+              {emailResult.success ? '✓ ' : '✗ '}{emailResult.message}
+              {emailResult.fallback && <span style={{ display: 'block', fontSize: 11, marginTop: 4 }}>フォールバックモード: サーバーログを確認してください（Vercel → Functions → Logs）</span>}
+              {emailResult.id && !emailResult.fallback && <span style={{ display: 'block', fontSize: 11, fontFamily: 'monospace', marginTop: 4 }}>ID: {emailResult.id}</span>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* AI API テスト */}
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">🤖 Anthropic AI（Claude）テスト</div>
+        </div>
+        <div className="card-body">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+            Claudeに「こんにちは」と送信してAPI接続を確認します
+          </p>
+          <button className="btn btn-primary" disabled={aiLoading} onClick={testAI}>
+            {aiLoading ? <><span className="spinner" /> 通信中…</> : '💬 AI接続テスト'}
+          </button>
+          {aiResult && (
+            <div className={`alert ${aiResult.includes('error') || aiResult.includes('エラー') ? 'alert-danger' : 'alert-success'}`} style={{ marginTop: 12 }}>
+              {aiResult.includes('error') || aiResult.includes('エラー') ? '✗ ' : '✓ AI応答: '}{aiResult}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 電子署名フローテスト */}
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">✍️ 電子署名フローテスト</div>
+        </div>
+        <div className="card-body">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+            署名URLの発行・メール送信の完全フローをテストします
+          </p>
+          <button className="btn btn-gold" disabled={signLoading} onClick={testSignFlow}>
+            {signLoading ? <><span className="spinner" /> 処理中…</> : '🔗 署名URLを発行'}
+          </button>
+          {signResult && (
+            <div style={{ marginTop: 12 }}>
+              {signResult.success ? (
+                <>
+                  <div className="alert alert-success" style={{ marginBottom: 8 }}>
+                    ✓ 署名URL発行成功
+                    {signResult.email?.fallback && ' （メール: フォールバックモード）'}
+                    {signResult.email?.sent && !signResult.email?.fallback && ' ＋ メール送信済み'}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input readOnly className="form-input" style={{ flex: '1 1 200px', fontSize: 11, fontFamily: 'monospace' }} value={signResult.signUrl ?? ''} onFocus={e => e.target.select()} />
+                    <a href={signResult.signUrl} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">署名ページを開く ↗</a>
+                  </div>
+                </>
+              ) : (
+                <div className="alert alert-danger">✗ エラー: {JSON.stringify(signResult)}</div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 設定ガイド */}
+      <div className="card">
+        <div className="card-header"><div className="card-title">⚙️ 本番化チェックリスト</div></div>
+        <div className="card-body">
+          {[
+            { env: 'RESEND_API_KEY', label: 'Resend APIキー（メール送信）', url: 'https://resend.com', hint: '無料: 月3,000通' },
+            { env: 'ANTHROPIC_API_KEY', label: 'Anthropic APIキー（AI生成）', url: 'https://console.anthropic.com', hint: 'Claude Sonnet 4使用' },
+            { env: 'NEXT_PUBLIC_SUPABASE_URL', label: 'Supabase URL（DB保存）', url: 'https://app.supabase.com', hint: '無料枠500MB' },
+            { env: 'SUPABASE_SERVICE_ROLE_KEY', label: 'Supabase Service Key', url: 'https://app.supabase.com', hint: 'Settings → API' },
+          ].map(item => (
+            <div key={item.env} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)', fontSize: 13, flexWrap: 'wrap' }}>
+              <code style={{ fontSize: 11, background: 'var(--earth-pale)', padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace', flexShrink: 0 }}>{item.env}</code>
+              <span style={{ flex: 1, minWidth: 120 }}>{item.label}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{item.hint}</span>
+              <a href={item.url} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ fontSize: 11 }}>取得 ↗</a>
+            </div>
+          ))}
+          <div className="alert alert-info" style={{ marginTop: 14 }}>
+            Vercel Dashboard → Settings → Environment Variables に上記を設定してください
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
