@@ -3,31 +3,33 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, FileText, Building2, PenLine, ShieldCheck,
-  Settings, Menu, X, Bell, Lock, Wifi, Clock, ChevronRight
-} from 'lucide-react';
+  IconDashboard, IconContracts, IconNewContract, IconProperties,
+  IconSecurity, IconSettings, IconBell, IconMenu, IconClose,
+  IconLock, IconWifi, IconClock, IconSign,
+} from './Icons';
+import AIChatAssistant from './AIChatAssistant';
 
 const NAV = [
   {
-    section: 'メイン',
+    section: '業務',
     items: [
-      { href: '/dashboard', icon: LayoutDashboard, label: 'ダッシュボード' },
-      { href: '/contracts', icon: FileText, label: '契約書管理', badge: '3' },
-      { href: '/contracts/new', icon: PenLine, label: '新規契約作成' },
-    ]
+      { href: '/dashboard', icon: IconDashboard, label: 'ダッシュボード' },
+      { href: '/contracts', icon: IconContracts, label: '契約書管理', badge: '3' },
+      { href: '/contracts/new', icon: IconNewContract, label: '新規契約作成' },
+    ],
   },
   {
     section: 'マスタ',
     items: [
-      { href: '/properties', icon: Building2, label: '物件管理' },
-    ]
+      { href: '/properties', icon: IconProperties, label: '物件管理' },
+    ],
   },
   {
-    section: 'セキュリティ・設定',
+    section: '管理',
     items: [
-      { href: '/security', icon: ShieldCheck, label: 'セキュリティ監査' },
-      { href: '/settings', icon: Settings, label: '設定' },
-    ]
+      { href: '/security', icon: IconSecurity, label: 'セキュリティ' },
+      { href: '/settings', icon: IconSettings, label: '設定' },
+    ],
   },
 ];
 
@@ -37,7 +39,7 @@ export default function AppLayout({ children, title }: { children: React.ReactNo
   const [time, setTime] = useState('');
 
   useEffect(() => {
-    const tick = () => setTime(new Date().toLocaleTimeString('ja-JP'));
+    const tick = () => setTime(new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
@@ -45,13 +47,8 @@ export default function AppLayout({ children, title }: { children: React.ReactNo
 
   return (
     <div className="app-layout">
-      {/* Sidebar overlay for mobile */}
-      <div
-        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
-        onClick={() => setSidebarOpen(false)}
-      />
+      <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
 
-      {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
           <div className="logo-mark">判</div>
@@ -67,7 +64,8 @@ export default function AppLayout({ children, title }: { children: React.ReactNo
               </div>
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                const active = pathname === item.href ||
+                  (item.href !== '/dashboard' && pathname.startsWith(item.href));
                 return (
                   <Link
                     key={item.href}
@@ -75,7 +73,7 @@ export default function AppLayout({ children, title }: { children: React.ReactNo
                     className={`nav-item ${active ? 'active' : ''}`}
                     onClick={() => setSidebarOpen(false)}
                   >
-                    <Icon size={16} />
+                    <Icon size={17} strokeWidth={active ? 2 : 1.6} />
                     {item.label}
                     {item.badge && <span className="badge">{item.badge}</span>}
                   </Link>
@@ -96,43 +94,36 @@ export default function AppLayout({ children, title }: { children: React.ReactNo
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="main-content">
-        {/* Security bar */}
         <div className="security-bar">
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px' }}>■ PropSign</span>
-          <span className="security-item ok"><Lock size={10} /> TLS 1.3 暗号化通信</span>
-          <span className="security-item ok"><ShieldCheck size={10} /> 電子帳簿保存法 準拠</span>
-          <span className="security-item ok"><Wifi size={10} /> タイムスタンプ サービス接続中</span>
-          <span className="security-item" style={{ marginLeft: 'auto', fontSize: '10px', fontFamily: 'monospace' }}>
-            <Clock size={10} /> {time}
+          <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '9px', letterSpacing: '0.12em' }}>PROPSIGN</span>
+          <span className="security-item ok" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconLock size={10} /> TLS 1.3</span>
+          <span className="security-item ok" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconSecurity size={10} /> 電子帳簿保存法準拠</span>
+          <span className="security-item ok" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconWifi size={10} /> タイムスタンプ接続中</span>
+          <span className="security-item" style={{ marginLeft: 'auto', fontFamily: 'monospace', fontSize: '10px', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <IconClock size={10} /> {time}
           </span>
         </div>
 
-        {/* Topbar */}
         <div className="topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+              {sidebarOpen ? <IconClose size={22} /> : <IconMenu size={22} />}
             </button>
             <span className="topbar-title">{title}</span>
           </div>
           <div className="topbar-actions">
-            <button className="btn btn-outline btn-icon" title="通知">
-              <Bell size={16} />
-            </button>
+            <button className="btn btn-ghost btn-icon" title="通知"><IconBell size={18} /></button>
             <Link href="/contracts/new" className="btn btn-gold btn-sm">
-              <PenLine size={14} />
-              新規作成
+              <IconSign size={14} /> 新規契約
             </Link>
           </div>
         </div>
 
-        {/* Page body */}
-        <div className="page-body">
-          {children}
-        </div>
+        <div className="page-body">{children}</div>
       </div>
+
+      <AIChatAssistant />
     </div>
   );
 }
