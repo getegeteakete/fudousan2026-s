@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   IconDashboard, IconContracts, IconNewContract, IconProperties,
   IconSecurity, IconSettings, IconBell, IconMenu, IconClose,
-  IconLock, IconWifi, IconClock, IconSign,
+  IconLock, IconWifi, IconClock, IconSign, IconSparkle,
 } from './Icons';
 import AIChatAssistant from './AIChatAssistant';
 
@@ -28,6 +28,7 @@ const NAV = [
     section: '管理',
     items: [
       { href: '/security', icon: IconSecurity, label: 'セキュリティ' },
+      { href: '/admin', icon: IconSparkle, label: '管理者パネル' },
       { href: '/settings', icon: IconSettings, label: '設定' },
     ],
   },

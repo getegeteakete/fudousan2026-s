@@ -3,6 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { SAMPLE_CONTRACTS, SAMPLE_PROPERTIES, STATUS_LABELS, TYPE_LABELS, formatCurrency, formatDate } from '@/lib/data';
 import Link from 'next/link';
 import { IconContracts, IconTrend, IconClock, IconCheck, IconAlert, IconArrow, IconProperties, IconNewContract, IconSparkle } from '@/components/Icons';
+import AITokenDashboard from '@/components/AITokenDashboard';
 
 const statusCounts = SAMPLE_CONTRACTS.reduce((acc, c) => {
   acc[c.status] = (acc[c.status] || 0) + 1;
@@ -18,32 +19,23 @@ export default function DashboardPage() {
       {/* Welcome banner */}
       <div style={{
         background: 'linear-gradient(135deg, var(--navy-deep) 0%, var(--navy-light) 100%)',
-        borderRadius: 'var(--radius-xl)',
-        padding: '24px 28px',
-        marginBottom: 22,
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 16,
-        border: '1px solid rgba(184,148,74,0.2)',
+        borderRadius: 'var(--radius-xl)', padding: '22px 28px', marginBottom: 20,
+        color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 16, border: '1px solid rgba(184,148,74,0.2)',
       }}>
         <div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 5, letterSpacing: '0.12em' }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4, letterSpacing: '0.12em' }}>
             {new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
           </div>
-          <div style={{ fontFamily: 'Shippori Mincho, serif', fontSize: 19, fontWeight: 700, marginBottom: 6, letterSpacing: '0.06em' }}>
+          <div style={{ fontFamily: 'Shippori Mincho, serif', fontSize: 18, fontWeight: 700, marginBottom: 5, letterSpacing: '0.05em' }}>
             おはようございます、山田 一郎 宅建士
           </div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
             署名待ちの契約が <strong style={{ color: 'var(--gold-light)' }}>{pending.length}件</strong> あります
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/contracts/new" className="btn btn-gold">
-            <IconNewContract size={14} /> 新規契約作成
-          </Link>
+          <Link href="/contracts/new" className="btn btn-gold"><IconNewContract size={14} /> 新規契約作成</Link>
           <Link href="/properties" className="btn btn-outline" style={{ color: 'rgba(255,255,255,0.8)', borderColor: 'rgba(255,255,255,0.2)' }}>
             <IconProperties size={14} /> 物件管理
           </Link>
@@ -90,7 +82,7 @@ export default function DashboardPage() {
             {pending.length === 0 ? (
               <div style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>署名待ちはありません</div>
             ) : pending.map((c) => (
-              <div key={c.id} style={{ padding: '13px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div key={c.id} style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.propertyName}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.tenantName} / {TYPE_LABELS[c.type]}</div>
@@ -129,7 +121,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Flow */}
+      {/* Contract flow */}
       <div className="card" style={{ marginBottom: 18 }}>
         <div className="card-header"><div className="card-title"><IconContracts size={15} /> 電子契約フロー</div></div>
         <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto' }}>
@@ -160,21 +152,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Legal */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+      {/* Legal compliance */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 22 }}>
         {[
           { title: '宅建業法（改正）', detail: '35条・37条書面 電子交付対応済み' },
           { title: '電子帳簿保存法', detail: '2024年1月義務化 完全準拠・7年保存' },
           { title: '電子署名法', detail: 'PKI基盤・タイムスタンプ 法的効力担保' },
         ].map((item) => (
           <div key={item.title} className="alert alert-success">
-            <span style={{ flexShrink: 0, marginTop: 1 }}><IconCheck size={14} /></span>
+            <span style={{ flexShrink: 0 }}><IconCheck size={14} /></span>
             <div>
               <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 2 }}>{item.title}</div>
               <div style={{ fontSize: 11 }}>{item.detail}</div>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ─── AI Token Dashboard ─── */}
+      <div style={{ borderTop: '2px solid var(--border)', paddingTop: 24, marginTop: 8 }}>
+        <AITokenDashboard />
       </div>
     </AppLayout>
   );
