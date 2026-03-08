@@ -435,6 +435,12 @@ export default function NewContractPage() {
                   value={form.specialTerms} onChange={e => setForm(f => ({ ...f, specialTerms: e.target.value }))} /></div>
             </div>
           </div>
+          {generateError && (
+            <div className="alert alert-warn" style={{ marginBottom: 12 }}>
+              <IconAlert size={13} /> AI生成エラー: {generateError}
+              <button onClick={() => setGenerateError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12 }}>✕</button>
+            </div>
+          )}
           <div style={{ marginTop: 20, display: 'flex', justifyContent: 'space-between' }}>
             <button className="btn btn-outline" onClick={() => setStep(1)}><IconBack size={14} /> 戻る</button>
             <button className="btn btn-gold btn-lg" disabled={!form.tenantName || !form.tenantEmail || isGenerating} onClick={handleGenerate}>
@@ -490,6 +496,12 @@ export default function NewContractPage() {
                 <h2>第6条（原状回復）</h2>
                 <p>乙は契約終了時に、国土交通省「原状回復をめぐるトラブルとガイドライン」に基づき、乙の故意・過失による損傷を原状回復するものとする。</p>
                 {form.specialTerms && (<><h2>特約事項</h2><p style={{ whiteSpace: 'pre-wrap' }}>{form.specialTerms}</p></>)}
+                {generatedText && (
+                  <div style={{ marginTop: 16, padding: '12px 14px', background: 'rgba(184,148,74,0.06)', borderRadius: 6, borderLeft: '3px solid var(--gold)' }}>
+                    <div style={{ fontSize: 10, color: 'var(--gold)', fontWeight: 700, marginBottom: 6 }}>✦ AI生成補足条項</div>
+                    <p style={{ fontSize: 11, lineHeight: 1.8, whiteSpace: 'pre-wrap', color: 'var(--text-sub)' }}>{generatedText.slice(0, 800)}{generatedText.length > 800 ? '…' : ''}</p>
+                  </div>
+                )}
                 <h2>宅地建物取引士 記名</h2>
                 <table><tbody>
                   <tr><th>宅建士 氏名</th><td>{form.agentName || '未入力'}</td></tr>
@@ -519,12 +531,27 @@ export default function NewContractPage() {
                     <IconAlert size={12} />
                     <span style={{ fontSize: 11 }}>AIの提案は参考情報です。最終判断は宅建士が行ってください。</span>
                   </div>
-                  {(AI_SUGGESTIONS[contractType as keyof typeof AI_SUGGESTIONS] || AI_SUGGESTIONS.lease).map((s, i) => (
-                    <div key={i} className={`alert ${s.type === 'ok' ? 'alert-success' : 'alert-warn'}`} style={{ marginBottom: 8 }}>
-                      {s.type === 'ok' ? <IconCheck size={12} /> : <IconAlert size={12} />}
-                      <span style={{ fontSize: 11 }}>{s.text}</span>
-                    </div>
-                  ))}
+                  {legalResult ? (
+                    <>
+                      <div className={`alert ${legalResult.risk_level === 'high' ? 'alert-warn' : 'alert-success'}`} style={{ marginBottom: 8 }}>
+                        {legalResult.risk_level === 'high' ? <IconAlert size={12} /> : <IconCheck size={12} />}
+                        <span style={{ fontSize: 11, fontWeight: 700 }}>リスクレベル: {legalResult.risk_level === 'high' ? '⚠️ 高' : legalResult.risk_level === 'medium' ? '注意' : '✅ 低'}</span>
+                      </div>
+                      {legalResult.items.map((item, i) => (
+                        <div key={i} className={`alert ${item.type === 'ok' ? 'alert-success' : item.type === 'warning' ? 'alert-warn' : 'alert-info'}`} style={{ marginBottom: 6 }}>
+                          {item.type === 'ok' ? <IconCheck size={12} /> : <IconAlert size={12} />}
+                          <span style={{ fontSize: 11 }}>[{item.category}] {item.text}</span>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    (AI_SUGGESTIONS[contractType as keyof typeof AI_SUGGESTIONS] || AI_SUGGESTIONS.lease).map((s, i) => (
+                      <div key={i} className={`alert ${s.type === 'ok' ? 'alert-success' : 'alert-warn'}`} style={{ marginBottom: 8 }}>
+                        {s.type === 'ok' ? <IconCheck size={12} /> : <IconAlert size={12} />}
+                        <span style={{ fontSize: 11 }}>{s.text}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 

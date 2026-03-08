@@ -27,6 +27,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+  try {
   const { token } = await params;
   const supabase = createAdminSupabase();
   const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
@@ -88,4 +89,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     timestampHash,
     contract: updated,
   });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

@@ -8,34 +8,44 @@ import {
   IconLock, IconWifi, IconClock, IconSign, IconSparkle,
 } from './Icons';
 import AIChatAssistant from './AIChatAssistant';
-
-const NAV = [
-  {
-    section: '業務',
-    items: [
-      { href: '/dashboard', icon: IconDashboard, label: 'ダッシュボード' },
-      { href: '/contracts', icon: IconContracts, label: '契約書管理', badge: '3' },
-      { href: '/contracts/new', icon: IconNewContract, label: '新規契約作成' },
-    ],
-  },
-  {
-    section: 'マスタ',
-    items: [
-      { href: '/properties', icon: IconProperties, label: '物件管理' },
-    ],
-  },
-  {
-    section: '管理',
-    items: [
-      { href: '/security', icon: IconSecurity, label: 'セキュリティ' },
-      { href: '/admin', icon: IconSparkle, label: '管理者パネル' },
-      { href: '/settings', icon: IconSettings, label: '設定' },
-    ],
-  },
-];
+import { getLocalContracts } from '@/lib/store';
+import { SAMPLE_CONTRACTS } from '@/lib/data';
 
 export default function AppLayout({ children, title }: { children: React.ReactNode; title: string }) {
   const pathname = usePathname();
+  const [pendingCount, setPendingCount] = useState(0);
+  useEffect(() => {
+    const local = getLocalContracts();
+    const localIds = new Set(local.map(x => x.id));
+    const all = [...local, ...SAMPLE_CONTRACTS.filter(c => !localIds.has(c.id))];
+    setPendingCount(all.filter(c => c.status === 'pending').length);
+  }, [pathname]);
+
+  const NAV = [
+    {
+      section: '業務',
+      items: [
+        { href: '/dashboard', icon: IconDashboard, label: 'ダッシュボード' },
+        { href: '/contracts', icon: IconContracts, label: '契約書管理', badge: pendingCount > 0 ? String(pendingCount) : undefined },
+        { href: '/contracts/new', icon: IconNewContract, label: '新規契約作成' },
+      ],
+    },
+    {
+      section: 'マスタ',
+      items: [
+        { href: '/properties', icon: IconProperties, label: '物件管理' },
+      ],
+    },
+    {
+      section: '管理',
+      items: [
+        { href: '/security', icon: IconSecurity, label: 'セキュリティ' },
+        { href: '/admin', icon: IconSparkle, label: '管理者パネル' },
+        { href: '/settings', icon: IconSettings, label: '設定' },
+      ],
+    },
+  ];
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [time, setTime] = useState('');
 
