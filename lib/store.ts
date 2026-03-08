@@ -60,3 +60,17 @@ export function saveLocalProperties(props: Property[]) {
   props.forEach(p => map.set(p.id, p));
   lsSet('properties', Array.from(map.values()));
 }
+
+// ── 顧客 ───────────────────────────────────────────────────
+import type { Customer } from './data';
+
+export const getLocalCustomers = (): Customer[] => lsGet<Customer[]>('customers', []);
+export function saveLocalCustomer(cu: Customer) {
+  const list = getLocalCustomers();
+  const idx = list.findIndex(x => x.id === cu.id);
+  if (idx >= 0) list[idx] = cu; else list.unshift(cu);
+  lsSet('customers', list);
+}
+export function deleteLocalCustomer(id: string) {
+  lsSet('customers', getLocalCustomers().filter(c => c.id !== id));
+}

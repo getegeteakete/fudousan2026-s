@@ -258,3 +258,112 @@ export const formatDate = (dateStr: string) => {
   const d = new Date(dateStr);
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 };
+
+// ─────────────────────────────────────────────
+// 顧客管理
+// ─────────────────────────────────────────────
+export type CustomerType = 'tenant' | 'buyer' | 'owner' | 'corporate';
+export type CustomerStatus = 'active' | 'inactive' | 'prospect';
+
+export interface Customer {
+  id: string;
+  type: CustomerType;
+  status: CustomerStatus;
+  name: string;
+  nameKana?: string;
+  email: string;
+  phone: string;
+  address?: string;
+  birthDate?: string;
+  company?: string;
+  notes?: string;
+  contractIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  assignedAgent?: string;
+  tags?: string[];
+}
+
+export const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
+  tenant: '借主',
+  buyer: '買主',
+  owner: 'オーナー',
+  corporate: '法人',
+};
+
+export const CUSTOMER_STATUS_LABELS: Record<CustomerStatus, string> = {
+  active: '取引中',
+  inactive: '取引終了',
+  prospect: '見込み',
+};
+
+export const SAMPLE_CUSTOMERS: Customer[] = [
+  {
+    id: 'cu001', type: 'tenant', status: 'active',
+    name: '鈴木 花子', nameKana: 'スズキ ハナコ',
+    email: 'hanako.suzuki@example.com', phone: '090-1234-5678',
+    address: '東京都渋谷区神宮前3-5-10',
+    birthDate: '1990-05-15',
+    contractIds: ['c001'],
+    assignedAgent: '山田 一郎',
+    tags: ['学生', '単身'],
+    createdAt: '2025-02-01T09:00:00', updatedAt: '2025-03-01T10:00:00',
+    notes: '礼金なし希望。ペット可物件優先。',
+  },
+  {
+    id: 'cu002', type: 'tenant', status: 'active',
+    name: '佐藤 次郎', nameKana: 'サトウ ジロウ',
+    email: 'jiro.sato@example.com', phone: '080-2345-6789',
+    address: '神奈川県横浜市中区山下町1-1',
+    birthDate: '1985-11-30',
+    contractIds: ['c002'],
+    assignedAgent: '山田 一郎',
+    tags: ['ファミリー', '転勤'],
+    createdAt: '2025-03-01T10:00:00', updatedAt: '2025-03-20T15:00:00',
+  },
+  {
+    id: 'cu003', type: 'buyer', status: 'active',
+    name: '伊藤 三郎', nameKana: 'イトウ サブロウ',
+    email: 'saburo.ito@example.com', phone: '090-5555-6666',
+    address: '東京都世田谷区三軒茶屋2-1-5',
+    birthDate: '1978-03-20',
+    contractIds: ['c003'],
+    assignedAgent: '中村 宅建士',
+    tags: ['一戸建て', '住替え'],
+    createdAt: '2025-03-10T11:00:00', updatedAt: '2025-03-25T11:00:00',
+    notes: '予算6,500万円以内。駅徒歩10分以内希望。',
+  },
+  {
+    id: 'cu004', type: 'tenant', status: 'active',
+    name: '渡辺 四郎', nameKana: 'ワタナベ シロウ',
+    email: 'shiro.watanabe@example.com', phone: '070-7777-8888',
+    address: '東京都品川区大崎3-2-1',
+    birthDate: '1992-07-04',
+    contractIds: ['c004'],
+    assignedAgent: '松本 宅建士',
+    tags: ['単身', 'IT業'],
+    createdAt: '2025-03-05T08:00:00', updatedAt: '2025-03-28T16:00:00',
+  },
+  {
+    id: 'cu005', type: 'owner', status: 'active',
+    name: '田中 建設株式会社', 
+    email: 'tanaka@estate.example.com', phone: '03-1234-5678',
+    company: '田中 建設株式会社',
+    contractIds: ['c001'],
+    assignedAgent: '山田 一郎',
+    tags: ['法人', 'オーナー', '複数物件'],
+    createdAt: '2024-01-15T09:00:00', updatedAt: '2025-03-01T10:00:00',
+    notes: '物件3棟保有。新規募集を検討中。',
+  },
+  {
+    id: 'cu006', type: 'tenant', status: 'prospect',
+    name: '高橋 五郎', nameKana: 'タカハシ ゴロウ',
+    email: 'goro.takahashi@example.com', phone: '090-8888-9999',
+    birthDate: '1988-09-12',
+    contractIds: [],
+    assignedAgent: '山田 一郎',
+    tags: ['見込み', '2LDK希望'],
+    createdAt: '2025-04-01T10:00:00', updatedAt: '2025-04-01T10:00:00',
+    notes: '来月の引越し予定。2LDK、家賃20万以内。',
+  },
+];

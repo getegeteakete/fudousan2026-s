@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   IconDashboard, IconContracts, IconNewContract, IconProperties,
   IconSecurity, IconSettings, IconBell, IconMenu, IconClose,
-  IconLock, IconWifi, IconClock, IconSign, IconSparkle,
+  IconLock, IconWifi, IconClock, IconSign, IconSparkle, IconUser,
 } from './Icons';
 import AIChatAssistant from './AIChatAssistant';
 import { getLocalContracts } from '@/lib/store';
@@ -34,6 +34,7 @@ export default function AppLayout({ children, title }: { children: React.ReactNo
       section: 'マスタ',
       items: [
         { href: '/properties', icon: IconProperties, label: '物件管理' },
+        { href: '/customers', icon: IconUser, label: '顧客管理' },
       ],
     },
     {

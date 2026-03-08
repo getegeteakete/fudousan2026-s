@@ -148,6 +148,7 @@ export default function NewContractPage() {
   const [generatedText, setGeneratedText] = useState('');
   const [legalResult, setLegalResult] = useState<{risk_level:string;items:{type:string;category:string;text:string}[];summary:string}|null>(null);
   const [generateError, setGenerateError] = useState('');
+  const [savedMsg, setSavedMsg] = useState('');
 
   const handleGenerate = async () => {
     if (!selectedProperty) return;
@@ -240,7 +241,7 @@ export default function NewContractPage() {
   const handleDraftSave = () => {
     const c = buildContract('draft');
     saveLocalContract(c);
-    alert(`下書きとして保存しました（契約番号: ${c.contractNo}）`);
+    setSavedMsg(`下書き保存: ${c.contractNo}`); setTimeout(() => setSavedMsg(''), 4000);
   };
 
   return (
@@ -263,7 +264,7 @@ export default function NewContractPage() {
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="card-header"><div className="card-title">契約種別を選択</div></div>
             <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+              <div className="form-grid form-grid-2">
                 {CONTRACT_TYPES.map((t) => (
                   <div key={t.value} onClick={() => setContractType(t.value)} style={{
                     border: `2px solid ${contractType === t.value ? 'var(--navy)' : 'var(--border)'}`,
@@ -378,7 +379,7 @@ export default function NewContractPage() {
             <IconProperties size={14} />
             <div><strong>{selectedProperty.name}</strong> の{CONTRACT_TYPES.find(t => t.value === contractType)?.label}を作成します</div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div className="grid-2col">
             <div className="card">
               <div className="card-header"><div className="card-title"><IconUser size={14} /> 契約者情報</div></div>
               <div className="card-body">
@@ -435,7 +436,10 @@ export default function NewContractPage() {
                   value={form.specialTerms} onChange={e => setForm(f => ({ ...f, specialTerms: e.target.value }))} /></div>
             </div>
           </div>
-          {generateError && (
+          {savedMsg && (
+        <div className="alert alert-success" style={{ marginBottom: 12 }}><IconCheck size={14} /> {savedMsg}</div>
+      )}
+      {generateError && (
             <div className="alert alert-warn" style={{ marginBottom: 12 }}>
               <IconAlert size={13} /> AI生成エラー: {generateError}
               <button onClick={() => setGenerateError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12 }}>✕</button>
@@ -454,7 +458,7 @@ export default function NewContractPage() {
       {/* Step 3 */}
       {step === 3 && selectedProperty && (
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, alignItems: 'start' }}>
+          <div className="grid-contract-preview">
             <div>
               <div className="contract-preview">
                 <h1>{CONTRACT_TYPES.find(t => t.value === contractType)?.label}</h1>

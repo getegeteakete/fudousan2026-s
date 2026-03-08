@@ -13,6 +13,7 @@ export default function PropertiesPage() {
   const [search, setSearch] = useState('');
   const [saved, setSaved] = useState(false);
   const [allProps, setAllProps] = useState<Property[]>([]);
+  const [csvError, setCsvError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export default function PropertiesPage() {
     reader.onload = (e) => {
       const text = e.target?.result as string;
       const lines = text.split('\n').filter(l => l.trim());
-      if (lines.length < 2) { alert('CSVの形式が正しくありません'); return; }
+      if (lines.length < 2) { setCsvError('CSVの形式が正しくありません（ヘッダー行+データ行が必要です）'); return; }
       const headers = lines[0].split(',').map(h => h.trim().replace(/"/g,''));
       const parsed: Property[] = lines.slice(1).map((line, i) => {
         const vals = line.split(',').map(v => v.trim().replace(/"/g,''));
@@ -73,6 +74,7 @@ export default function PropertiesPage() {
 
   return (
     <AppLayout title="物件管理">
+      {csvError && <div className="alert alert-danger" style={{ marginBottom: 14 }}>{csvError}</div>}
       {saved && <div className="alert alert-success" style={{marginBottom:16}}><IconCheck size={14}/> {csvProperties.length||''}件の物件をインポートしました</div>}
 
       {/* CSV インポート */}

@@ -153,7 +153,7 @@ export default function ContractDetailPage() {
 
       {/* ── 契約内容 ── */}
       {tab==='detail' && (
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <div className="grid-2col">
           <div className="card">
             <div className="card-header"><div className="card-title"><IconContracts size={14}/> 基本情報</div></div>
             <div className="card-body">
