@@ -1,8 +1,9 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { SAMPLE_PROPERTIES, formatCurrency } from '@/lib/data';
-import type { Property } from '@/lib/data';
+import type { Property, Contract } from '@/lib/data';
+import { getLocalProperties, saveLocalContract, getSettings } from '@/lib/store';
 import {
   IconUpload, IconCSV, IconProperties, IconUser, IconContracts,
   IconCheck, IconSparkle, IconAlert, IconArrow, IconBack,
@@ -108,7 +109,9 @@ export default function NewContractPage() {
     startDate: '', endDate: '', agentName: '', agentLicense: '', specialTerms: '',
   });
 
-  const allProperties = [...SAMPLE_PROPERTIES, ...csvProperties];
+  const [localProperties, setLocalProperties] = useState<Property[]>([]);
+  useEffect(() => { setLocalProperties(getLocalProperties()); }, []);
+  const allProperties = [...localProperties, ...SAMPLE_PROPERTIES.filter(sp => !localProperties.find(lp=>lp.id===sp.id)), ...csvProperties];
 
   const handleCSV = (file: File) => {
     const reader = new FileReader();
@@ -142,9 +145,52 @@ export default function NewContractPage() {
     if (prop.rent) setForm(f => ({ ...f, rent: prop.rent!.toString(), deposit: (prop.rent! * 2).toString() }));
   };
 
-  const handleGenerate = () => {
+  const [generatedText, setGeneratedText] = useState('');
+  const [legalResult, setLegalResult] = useState<{risk_level:string;items:{type:string;category:string;text:string}[];summary:string}|null>(null);
+  const [generateError, setGenerateError] = useState('');
+
+  const handleGenerate = async () => {
+    if (!selectedProperty) return;
     setIsGenerating(true);
-    setTimeout(() => { setIsGenerating(false); setAiChecked(true); setStep(3); }, 2000);
+    setGenerateError('');
+    try {
+      const genRes = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: contractType,
+          propertyName: selectedProperty.name,
+          propertyAddress: selectedProperty.address,
+          tenantName: form.tenantName,
+          rent: parseInt(form.rent) || undefined,
+          deposit: parseInt(form.deposit) || undefined,
+          keyMoney: parseInt(form.keyMoney) || undefined,
+          startDate: form.startDate || undefined,
+          endDate: form.endDate || undefined,
+          specialTerms: form.specialTerms || undefined,
+          agentName: form.agentName || undefined,
+          agentLicense: form.agentLicense || undefined,
+        }),
+      });
+      const genData = await genRes.json();
+      if (!genRes.ok || genData.error) throw new Error(genData.error ?? 'AI生成エラー');
+      setGeneratedText(genData.text ?? '');
+      try {
+        const legalRes = await fetch('/api/ai/legal-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: contractType, contractData: { property: selectedProperty.name, address: selectedProperty.address, tenant: form.tenantName, rent: form.rent, deposit: form.deposit, start: form.startDate, end: form.endDate, specialTerms: form.specialTerms } }),
+        });
+        const legalData = await legalRes.json();
+        if (legalData.result) setLegalResult(legalData.result);
+      } catch {}
+      setAiChecked(true);
+      setStep(3);
+    } catch (e) {
+      setGenerateError(String(e));
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const generateContractNo = () => {
@@ -153,6 +199,49 @@ export default function NewContractPage() {
   };
 
   const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const buildContract = (status: Contract['status']): Contract => {
+    const settings = getSettings();
+    const now = new Date().toISOString();
+    const contractNo = `PS-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+    return {
+      id: `c-${Date.now()}`,
+      contractNo,
+      type: contractType as Contract['type'],
+      status,
+      propertyId: selectedProperty?.id ?? '',
+      propertyName: selectedProperty?.name ?? '',
+      propertyAddress: selectedProperty?.address ?? '',
+      tenantName: form.tenantName,
+      tenantEmail: form.tenantEmail,
+      tenantPhone: form.tenantPhone,
+      agentName: form.agentName || settings.agentName,
+      agentLicense: form.agentLicense || settings.agentLicense,
+      rent: parseInt(form.rent) || undefined,
+      deposit: parseInt(form.deposit) || undefined,
+      keyMoney: parseInt(form.keyMoney) || undefined,
+      startDate: form.startDate,
+      endDate: form.endDate || undefined,
+      specialTerms: form.specialTerms || undefined,
+      createdAt: now,
+      updatedAt: now,
+      sentAt: status === 'pending' ? now : undefined,
+      auditLog: [{ timestamp: now, event: '契約書作成', detail: `AI生成にて${status==='pending'?'署名依頼送信':'下書き保存'}`, userId: 'current' }],
+      notes: generatedText ? generatedText.slice(0, 500) : undefined,
+    };
+  };
+
+  const handleSendRequest = () => {
+    const c = buildContract('pending');
+    saveLocalContract(c);
+    setStep(4);
+  };
+
+  const handleDraftSave = () => {
+    const c = buildContract('draft');
+    saveLocalContract(c);
+    alert(`下書きとして保存しました（契約番号: ${c.contractNo}）`);
+  };
 
   return (
     <AppLayout title="新規契約作成">
@@ -455,10 +544,10 @@ export default function NewContractPage() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button className="btn btn-primary btn-lg w-full" onClick={() => setStep(4)}>
+                <button className="btn btn-primary btn-lg w-full" onClick={handleSendRequest}>
                   <IconSend size={15} /> 署名依頼を送信
                 </button>
-                <button className="btn btn-outline w-full">
+                <button className="btn btn-outline w-full" onClick={handleDraftSave}>
                   <IconDownload size={14} /> 下書き保存
                 </button>
                 <button className="btn btn-ghost btn-sm w-full" onClick={() => setStep(2)}>

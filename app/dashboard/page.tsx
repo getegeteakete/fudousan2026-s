@@ -1,178 +1,120 @@
 'use client';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { SAMPLE_CONTRACTS, SAMPLE_PROPERTIES, STATUS_LABELS, TYPE_LABELS, formatCurrency, formatDate } from '@/lib/data';
+import type { Contract } from '@/lib/data';
 import Link from 'next/link';
-import { IconContracts, IconTrend, IconClock, IconCheck, IconAlert, IconArrow, IconProperties, IconNewContract, IconSparkle } from '@/components/Icons';
+import { IconContracts, IconProperties, IconCheck, IconAlert, IconClock, IconArrow, IconSign } from '@/components/Icons';
 import AITokenDashboard from '@/components/AITokenDashboard';
+import { getLocalContracts, getLocalProperties } from '@/lib/store';
 
-const statusCounts = SAMPLE_CONTRACTS.reduce((acc, c) => {
-  acc[c.status] = (acc[c.status] || 0) + 1;
-  return acc;
-}, {} as Record<string, number>);
+const statusClass: Record<string,string> = {
+  draft:'status-draft', pending:'status-pending', signed:'status-signed',
+  completed:'status-completed', expired:'status-expired',
+};
 
 export default function DashboardPage() {
-  const pending = SAMPLE_CONTRACTS.filter(c => c.status === 'pending');
-  const recent = [...SAMPLE_CONTRACTS].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [propertyCount, setPropertyCount] = useState(0);
+
+  useEffect(() => {
+    const local = getLocalContracts();
+    const localIds = new Set(local.map(c=>c.id));
+    const merged = [...local, ...SAMPLE_CONTRACTS.filter(c=>!localIds.has(c.id))];
+    setContracts(merged);
+
+    const localProps = getLocalProperties();
+    setPropertyCount(localProps.length + SAMPLE_PROPERTIES.filter(p=>!localProps.find(lp=>lp.id===p.id)).length);
+  }, []);
+
+  const statusCounts = contracts.reduce((acc, c) => {
+    acc[c.status] = (acc[c.status] || 0) + 1; return acc;
+  }, {} as Record<string, number>);
+
+  const pending  = contracts.filter(c => c.status === 'pending');
+  const recent   = [...contracts].sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5);
 
   return (
     <AppLayout title="ダッシュボード">
-      {/* Welcome banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, var(--navy-deep) 0%, var(--navy-light) 100%)',
-        borderRadius: 'var(--radius-xl)', padding: '22px 28px', marginBottom: 20,
-        color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexWrap: 'wrap', gap: 16, border: '1px solid rgba(184,148,74,0.2)',
-      }}>
-        <div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4, letterSpacing: '0.12em' }}>
-            {new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-          </div>
-          <div style={{ fontFamily: 'Shippori Mincho, serif', fontSize: 18, fontWeight: 700, marginBottom: 5, letterSpacing: '0.05em' }}>
-            おはようございます、山田 一郎 宅建士
-          </div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-            署名待ちの契約が <strong style={{ color: 'var(--gold-light)' }}>{pending.length}件</strong> あります
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/contracts/new" className="btn btn-gold"><IconNewContract size={14} /> 新規契約作成</Link>
-          <Link href="/properties" className="btn btn-outline" style={{ color: 'rgba(255,255,255,0.8)', borderColor: 'rgba(255,255,255,0.2)' }}>
-            <IconProperties size={14} /> 物件管理
-          </Link>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="stat-grid">
-        <div className="stat-card navy">
-          <div className="stat-label">総契約数</div>
-          <div className="stat-value">{SAMPLE_CONTRACTS.length}</div>
+      {/* KPI */}
+      <div className="stat-grid" style={{marginBottom:24}}>
+        <div className="stat-card">
+          <div className="stat-label">総契約書数</div>
+          <div className="stat-value">{contracts.length}</div>
           <div className="stat-sub">全ステータス合計</div>
         </div>
-        <div className="stat-card gold">
+        <div className="stat-card">
           <div className="stat-label">署名待ち</div>
-          <div className="stat-value">{statusCounts.pending || 0}</div>
-          <div className="stat-sub">要アクション</div>
-        </div>
-        <div className="stat-card earth">
-          <div className="stat-label">締結完了</div>
-          <div className="stat-value" style={{ color: 'var(--green)' }}>{statusCounts.completed || 0}</div>
-          <div className="stat-sub">今月</div>
+          <div className="stat-value" style={{color:'var(--gold)'}}>{statusCounts.pending||0}</div>
+          <div className="stat-sub">対応が必要</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">登録物件数</div>
-          <div className="stat-value">{SAMPLE_PROPERTIES.length}</div>
-          <div className="stat-sub">アクティブ</div>
+          <div className="stat-label">今月の締結</div>
+          <div className="stat-value" style={{color:'var(--green)'}}>{statusCounts.completed||0}</div>
+          <div className="stat-sub">完了</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">下書き</div>
-          <div className="stat-value" style={{ color: 'var(--text-muted)' }}>{statusCounts.draft || 0}</div>
-          <div className="stat-sub">作成中</div>
+          <div className="stat-label">管理物件数</div>
+          <div className="stat-value">{propertyCount}</div>
+          <div className="stat-sub">登録済み</div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 18 }}>
-        {/* Pending */}
-        <div className="card">
+      {/* 署名待ちアラート */}
+      {pending.length > 0 && (
+        <div className="card" style={{marginBottom:20,border:'1px solid rgba(184,148,74,0.4)',background:'rgba(232,212,154,0.08)'}}>
           <div className="card-header">
-            <div className="card-title"><IconAlert size={15} color="var(--gold)" /> 署名待ち契約</div>
-            <Link href="/contracts" className="btn btn-outline btn-sm">すべて <IconArrow size={12} /></Link>
+            <div className="card-title" style={{color:'var(--gold)'}}><IconAlert size={14} color="var(--gold)"/> 署名待ち ({pending.length}件)</div>
+            <Link href="/contracts?status=pending" className="btn btn-outline btn-sm">すべて確認 <IconArrow size={12}/></Link>
           </div>
-          <div style={{ padding: 0 }}>
-            {pending.length === 0 ? (
-              <div style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>署名待ちはありません</div>
-            ) : pending.map((c) => (
-              <div key={c.id} style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.propertyName}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.tenantName} / {TYPE_LABELS[c.type]}</div>
+          <div className="card-body" style={{display:'flex',flexDirection:'column',gap:8}}>
+            {pending.slice(0,3).map(c=>(
+              <div key={c.id} style={{display:'flex',alignItems:'center',gap:12,padding:'8px 12px',background:'white',borderRadius:'var(--radius)',border:'1px solid var(--border)'}}>
+                <IconClock size={14} color="var(--gold)"/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600}}>{c.propertyName}</div>
+                  <div style={{fontSize:11,color:'var(--text-muted)'}}>{c.tenantName} · {c.sentAt?`送信済み ${formatDate(c.sentAt)}`:'未送信'}</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  <span className="status-badge status-pending">署名待ち</span>
-                  <Link href={`/contracts/${c.id}`} className="btn btn-primary btn-sm">詳細</Link>
-                </div>
+                <Link href={`/contracts/${c.id}`} className="btn btn-gold btn-sm">
+                  <IconSign size={12}/> 署名
+                </Link>
               </div>
             ))}
           </div>
         </div>
+      )}
 
-        {/* Recent */}
-        <div className="card">
-          <div className="card-header">
-            <div className="card-title"><IconClock size={15} color="var(--blue)" /> 最近の更新</div>
-          </div>
-          <div style={{ padding: 0 }}>
-            {recent.map((c) => (
-              <div key={c.id} style={{ padding: '11px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                  background: c.status === 'completed' ? 'var(--green)' : c.status === 'pending' ? 'var(--gold)' : c.status === 'signed' ? 'var(--blue)' : 'var(--border-dark)',
-                }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.propertyName}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.auditLog[c.auditLog.length - 1]?.event}</div>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
-                  {new Date(c.updatedAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* 直近の活動 */}
+      <div className="card" style={{marginBottom:24}}>
+        <div className="card-header">
+          <div className="card-title"><IconContracts size={14}/> 直近の契約書</div>
+          <Link href="/contracts" className="btn btn-outline btn-sm">一覧 <IconArrow size={12}/></Link>
+        </div>
+        <div style={{overflowX:'auto'}}>
+          <table className="data-table">
+            <thead><tr><th>契約番号</th><th>物件名</th><th>契約者</th><th>種別</th><th>ステータス</th><th>更新日</th></tr></thead>
+            <tbody>
+              {recent.length===0?(
+                <tr><td colSpan={6} style={{textAlign:'center',padding:24,color:'var(--text-muted)'}}>
+                  <Link href="/contracts/new" className="btn btn-primary btn-sm">最初の契約書を作成</Link>
+                </td></tr>
+              ):recent.map(c=>(
+                <tr key={c.id} style={{cursor:'pointer'}} onClick={()=>window.location.href=`/contracts/${c.id}`}>
+                  <td style={{fontFamily:'monospace',fontSize:11}}>{c.contractNo}</td>
+                  <td style={{fontWeight:600,fontSize:13}}>{c.propertyName}</td>
+                  <td style={{fontSize:12}}>{c.tenantName}</td>
+                  <td><span className="status-badge" style={{background:'var(--earth-pale)',color:'var(--navy)'}}>{TYPE_LABELS[c.type]}</span></td>
+                  <td><span className={`status-badge ${statusClass[c.status]}`}>{STATUS_LABELS[c.status]}</span></td>
+                  <td style={{fontSize:11,color:'var(--text-muted)'}}>{formatDate(c.updatedAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Contract flow */}
-      <div className="card" style={{ marginBottom: 18 }}>
-        <div className="card-header"><div className="card-title"><IconContracts size={15} /> 電子契約フロー</div></div>
-        <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto' }}>
-          {[
-            { path: 'M14 2L20 8L20 22L4 22L4 2Z M14 2L14 8L20 8 M8 12L16 12 M8 16L13 16', label: 'CSV\nインポート', color: 'var(--blue)' },
-            { arrow: true },
-            { path: 'M17 3C18.1 3 19 3.9 19 5L7 17L3 21L7 17L19 5 M15 5L19 9', label: '契約書\n自動生成', color: 'var(--navy)' },
-            { arrow: true },
-            { path: 'M12 2L13.5 9L20 10L13.5 11L12 18L10.5 11L4 10L10.5 9Z', label: '宅建士\nAIチェック', color: 'var(--gold)' },
-            { arrow: true },
-            { path: 'M22 2L11 13 M22 2L15 22L11 13L2 9Z', label: '署名依頼\n送信', color: 'var(--nezumi)' },
-            { arrow: true },
-            { path: 'M17 3C18.1 3 19 3.9 19 5L7 17L3 21L7 17L19 5 M15 5L19 9 M3 21C7 19 11 17 15 19C17 20 19 21 21 21', label: '顧客\n電子署名', color: 'var(--green)' },
-            { arrow: true },
-            { path: 'M5 11L5 19C5 20.7 7.1 22 12 22C16.9 22 21 20.7 21 19L21 11 M8 11L8 7C8 4.8 9.8 3 12 3C14.2 3 16 4.8 16 7L16 11', label: 'タイムスタンプ\n付与', color: 'var(--red)' },
-            { arrow: true },
-            { path: 'M4 12L9 17L20 6', label: '締結完了\n保管', color: 'var(--green)' },
-          ].map((s, i) => 'arrow' in s ? (
-            <span key={i} style={{ color: 'var(--earth)', fontSize: 18, flexShrink: 0, fontWeight: 300 }}>›</span>
-          ) : (
-            <div key={i} style={{ textAlign: 'center', minWidth: 68, flexShrink: 0 }}>
-              <div style={{ width: 42, height: 42, borderRadius: '50%', border: `1.5px solid ${s.color}40`, background: s.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px' }}>
-                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d={s.path} /></svg>
-              </div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-sub)', whiteSpace: 'pre-line', lineHeight: 1.4 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Legal compliance */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 22 }}>
-        {[
-          { title: '宅建業法（改正）', detail: '35条・37条書面 電子交付対応済み' },
-          { title: '電子帳簿保存法', detail: '2024年1月義務化 完全準拠・7年保存' },
-          { title: '電子署名法', detail: 'PKI基盤・タイムスタンプ 法的効力担保' },
-        ].map((item) => (
-          <div key={item.title} className="alert alert-success">
-            <span style={{ flexShrink: 0 }}><IconCheck size={14} /></span>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 2 }}>{item.title}</div>
-              <div style={{ fontSize: 11 }}>{item.detail}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ─── AI Token Dashboard ─── */}
-      <div style={{ borderTop: '2px solid var(--border)', paddingTop: 24, marginTop: 8 }}>
-        <AITokenDashboard />
-      </div>
+      {/* AI使用量 */}
+      <AITokenDashboard />
     </AppLayout>
   );
 }
